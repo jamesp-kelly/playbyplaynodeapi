@@ -4,7 +4,32 @@ var request = require('request').defaults({
 
 var async = require('async');
 
+var redis = require('redis');
+var client = redis.createClient(6379, '127.0.0.1');
+
 module.exports = function(app) {
+
+  // app.get('/catname/:id', function(req, res) {
+  //   client.get(req.params.id, function(error, cat) {
+  //     if (error) {throw error;}
+  //     if (cat) {
+  //       res.json(JSON.parse(cat));
+  //     } else {
+  //       request({ uri: 'http://localhost:3000/cat/' + req.params.id }, function(error, response, body) {
+  //         if (error) {throw error; return;}
+  //         if (!error && response.statusCode === 200) {
+  //           res.json(body);
+  //           client.set(req.params.id, JSON.stringify(body), function(error) {
+  //             if (error) {throw error;}
+  //           });
+  //         } else {
+  //           res.send(response.statusCode);
+  //         }
+  //       });
+  //     }
+  //   });
+  // });
+
 
   // read
   app.get('/pets', function(req, res) {
@@ -24,15 +49,29 @@ module.exports = function(app) {
         });
       },
       dog: function(callback) {
-        request({uri: 'http://localhost:3001/dog'}, function(error, response, body) {
-          if (error) {
-            callback({service: 'cat', error: error});
-            return;
-          }
-          if (!error && response.statusCode === 200) {
-            callback(null, body.data);
+
+        client.get('http://localhost:3001/dog', function(error, dog) {
+          if (error) { throw error;}
+          if (dog) {
+            callback(null, JSON.parse(dog));
           } else {
-            callback(response.statusCode);
+            request({uri: 'http://localhost:3001/dog'}, function(error, response, body) {
+              if (error) {
+                callback({service: 'dog', error: error});
+              }
+              if (!error && response.statusCode === 200) {
+                callback(null, body.data);
+                // client.set('http://localhost:3001/dog', JSON.stringify(body.data), function(error) {
+                //   if (error) {throw error;}
+                // });
+
+                client.setex('http://localhost:3001/dog', 10, JSON.stringify(body.data), function(error) { //set with 10 second expiration
+                  if (error) {throw error;}
+                });
+              } else {
+                callback(response.statusCode);
+              }
+            });
           }
         });
       },

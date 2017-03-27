@@ -24,7 +24,7 @@ module.exports = function(app) {
         //res.json({info: 'dog found successfully', data: dogs});
         setTimeout(function() {
           res.json({info: 'dog found successfully', data: dogs});
-        }, 5000);
+        }, 10000);
       }
     });
   });
